@@ -2,10 +2,11 @@ import { Server } from './server/server';
 import { userRouter } from './users/users.router';
 import { restaurantRouter } from './restaurants/restaurants.router';
 import { reviewRouter } from './reviews/reviews.router';
+import { mainRouter } from './main.router';
 
 const server = new Server
 
-server.bootstrap([userRouter, restaurantRouter, reviewRouter])
+server.bootstrap([mainRouter, userRouter, restaurantRouter, reviewRouter])
     .then((server) => {
         console.log(`Server is listening on: ${server.application.address().port}`)
     })

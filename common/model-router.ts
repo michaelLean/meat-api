@@ -5,16 +5,47 @@ import { Router } from './router';
 import { NotFoundError } from 'restify-errors';
 
 export abstract class ModelRouter<D extends mongoose.Document> extends Router {
+    protected basePath: string;
+    protected pageSize: number;
+
     constructor(protected model: mongoose.Model<D>) {
         super()
+        this.basePath = `/${model.collection.name}`;
+        this.pageSize = 2;
     }
 
-    protected prepareAll(query: mongoose.DocumentQuery<D[],D>): mongoose.DocumentQuery<D[],D> {
+    protected prepareAll(query: mongoose.DocumentQuery<D[], D>): mongoose.DocumentQuery<D[], D> {
         return query;
     }
 
-    protected prepareOne(query: mongoose.DocumentQuery<D,D>): mongoose.DocumentQuery<D,D> {
+    protected prepareOne(query: mongoose.DocumentQuery<D, D>): mongoose.DocumentQuery<D, D> {
         return query;
+    }
+
+    public envelope(document: any): any {
+        let resource = Object.assign({ _links: {} }, document.toJSON())
+        resource._links.self = `${this.basePath}/${resource._id}`;
+        return resource
+    }
+
+    public envelopeAll(documents: any[], options: any = {}): any {
+        const resource: any = {
+            _links: {
+                self: `${options.url}`
+            },
+            items: documents
+        }
+
+        if (options.page && options.count && options.pageSize) {
+            if (options.page > 1) {
+                resource._links.previous = `${this.basePath}?_page=${options.page - 1}`
+            }
+            const remaining = options.count - (options.page * options.pageSize);
+            if (remaining > 0) {
+                resource._links.next = `${this.basePath}?_page=${options.page + 1}`
+            }
+        }
+        return resource
     }
 
     public validateId = (req: Request, res: Response, next: Next) => {
@@ -26,8 +57,22 @@ export abstract class ModelRouter<D extends mongoose.Document> extends Router {
     }
 
     public findAll = (req: Request, res: Response, next: Next) => {
-        this.prepareAll(this.model.find())
-            .then(this.renderAll(res, next))
+        let page: number = parseInt(req.query._page || 1)
+        page = page > 0 ? page : 1;
+        const skip: number = (page - 1) * this.pageSize;
+
+        this.model.countDocuments({})
+            .then(count =>
+                this.prepareAll(this.model.find())
+                    .skip(skip)
+                    .limit(this.pageSize)
+                    .then(this.renderAll(res, next, {
+                        page,
+                        count,
+                        pageSize: this.pageSize,
+                        url: req.url
+                    }))
+            )
             .catch(next)
     }
 
