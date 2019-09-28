@@ -3,6 +3,7 @@ import * as mongoose from 'mongoose';
 import { Server, Request, Response, Next } from 'restify';
 import { Review } from './reviews.model';
 import { ModelRouter } from '../common/model-router';
+import { authorize } from '../security/authz.handler';
 
 class ReviewRouter extends ModelRouter<Review> {
 
@@ -35,7 +36,7 @@ class ReviewRouter extends ModelRouter<Review> {
     applyRoutes(application: Server) {
         application.get(`${this.basePath}`, this.findAll)
         application.get(`${this.basePath}/:id`, [this.validateId, this.findById])
-        application.post(`${this.basePath}`, this.save)
+        application.post(`${this.basePath}`, [authorize('admin', 'user'), this.save])
     }
 }
 

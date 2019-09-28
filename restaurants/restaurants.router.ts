@@ -1,6 +1,7 @@
 import { Server, Request, Response, Next } from 'restify';
 import { ModelRouter } from '../common/model-router';
 import { Restaurant } from './restaurants.model';
+import { authorize } from '../security/authz.handler';
 
 class RestaurantRouter extends ModelRouter<Restaurant> {
     constructor() {
@@ -46,13 +47,13 @@ class RestaurantRouter extends ModelRouter<Restaurant> {
     public applyRoutes(application: Server) {
         application.get(`${this.basePath}`, this.findAll)
         application.get(`${this.basePath}/:id`, [this.validateId, this.findById])
-        application.post(`${this.basePath}`, this.save)
-        application.put(`${this.basePath}/:id`, [this.validateId, this.replace])
-        application.patch(`${this.basePath}/:id`, [this.validateId, this.update])
-        application.del(`${this.basePath}/:id`, [this.validateId, this.remove])
+        application.post(`${this.basePath}`, [authorize('admin'), this.save])
+        application.put(`${this.basePath}/:id`, [authorize('admin'), this.validateId, this.VerifyId, this.replace])
+        application.patch(`${this.basePath}/:id`, [authorize('admin'), this.validateId, this.VerifyId, this.update])
+        application.del(`${this.basePath}/:id`, [authorize('admin'), this.validateId, this.VerifyId, this.remove])
 
         application.get(`${this.basePath}/:id/menu`, [this.validateId, this.findMenu])
-        application.put(`${this.basePath}/:id/menu`, [this.validateId, this.replaceMenu])
+        application.put(`${this.basePath}/:id/menu`, [authorize('admin'), this.validateId, this.VerifyId, this.replaceMenu])
     }
 }
 

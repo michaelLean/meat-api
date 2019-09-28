@@ -2,7 +2,7 @@ import * as mongoose from 'mongoose';
 
 import { Response, Request, Next } from 'restify';
 import { Router } from './router';
-import { NotFoundError } from 'restify-errors';
+import { NotFoundError, NotAuthorizedError } from 'restify-errors';
 
 export abstract class ModelRouter<D extends mongoose.Document> extends Router {
     protected basePath: string;
@@ -46,6 +46,14 @@ export abstract class ModelRouter<D extends mongoose.Document> extends Router {
             }
         }
         return resource
+    }
+
+    public VerifyId = (req: Request, res: Response, next: Next) => {
+        if(req.authenticated._id === req.params.id) {
+            next()
+        } else {
+            next(new NotAuthorizedError('User differs'))
+        }
     }
 
     public validateId = (req: Request, res: Response, next: Next) => {
